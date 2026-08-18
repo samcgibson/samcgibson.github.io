@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Bid Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --felt: #17261c;
+    --felt-deep: #0b120d;
+    --brass: #c9a341;
+    --paper: #f3efe2;
+    --paper-line: #ded6bd;
+    --ink: #241c12;
+    --ink-soft: #6b6350;
+    --you: #b3542f;
+    --you-soft: #f0d9cb;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at top, var(--felt) 0%, var(--felt-deep) 75%);
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--paper);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 16px 60px 16px;
+  }
+
+  .app-brand {
+    text-align: center;
+    margin-bottom: 26px;
+  }
+
+  .app-brand .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin: 0 0 6px 0;
+  }
+
+  .app-brand h1 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 34px;
+    margin: 0;
+    color: var(--paper);
+  }
+
+  .app-brand p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    color: rgba(243,239,226,0.5);
+    margin: 8px 0 0 0;
+  }
+
+  #auction-root, #sim-root {
+    width: 100%;
+    max-width: 620px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,163,65,0.2);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  .au-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    max-width: 620px;
+    width: 100%;
+  }
+
+  .au-tab {
+    flex: 1;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,163,65,0.2);
+    color: rgba(243,239,226,0.55);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .au-tab.active {
+    background: rgba(201,163,65,0.14);
+    border-color: var(--brass);
+    color: var(--brass);
+  }
+
+  .au-tab:hover:not(.active) { background: rgba(255,255,255,0.06); }
+
+  /* --- entry screen --- */
+  .au-entry {
+    text-align: center;
+    padding: 10px 4px 4px 4px;
+  }
+
+  .au-entry p {
+    font-size: 14px;
+    color: rgba(243,239,226,0.7);
+    line-height: 1.7;
+    max-width: 440px;
+    margin: 0 auto 22px auto;
+  }
+
+  .au-entry input {
+    width: 100%;
+    max-width: 280px;
+    background: var(--paper);
+    color: var(--ink);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .au-entry input:focus { outline: 2px solid var(--brass); }
+
+  .au-entry button {
+    background: var(--you);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 13px 30px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .au-entry button:hover { background: #c9613a; }
+
+  /* --- game screen --- */
+  #auction-root * { box-sizing: border-box; }
+
+  .au-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid rgba(201,163,65,0.3);
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+  }
+
+  .au-lot {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin: 0;
+  }
+
+  .au-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 4px 0 0 0;
+    color: var(--paper);
+  }
+
+  .au-fee {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: rgba(243,239,226,0.55);
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  .au-stage {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .au-stat {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,163,65,0.25);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .au-stat-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(243,239,226,0.5);
+    margin-bottom: 6px;
+  }
+
+  .au-stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--brass);
+  }
+
+  .au-stat-value.pot { color: #7fbf8c; }
+
+  .au-bidbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .au-bidbar input {
+    flex: 1;
+    background: var(--paper);
+    color: var(--ink);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    min-width: 0;
+  }
+
+  .au-bidbar input:focus { outline: 2px solid var(--brass); }
+
+  .au-bidbar button {
+    background: var(--you);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 22px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.15s;
+    white-space: nowrap;
+  }
+
+  .au-bidbar button:hover:not(:disabled) { background: #c9613a; }
+  .au-bidbar button:active:not(:disabled) { transform: scale(0.97); }
+  .au-bidbar button:disabled { background: #5a4a42; cursor: not-allowed; opacity: 0.5; }
+
+  .au-bidbar button.au-next {
+    flex: 1;
+    background: transparent;
+    border: 1px solid rgba(201,163,65,0.5);
+    color: var(--brass);
+  }
+  .au-bidbar button.au-next:hover:not(:disabled) { background: rgba(201,163,65,0.12); }
+  .au-bidbar button.au-next:disabled { background: transparent; border-color: rgba(201,163,65,0.15); color: rgba(201,163,65,0.3); opacity: 1; }
+
+  .au-hint {
+    font-size: 12px;
+    color: rgba(243,239,226,0.45);
+    margin-bottom: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .au-ledger {
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 4px 0;
+    max-height: 240px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+  }
+
+  .au-ledger-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  .au-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 18px;
+    border-bottom: 1px solid var(--paper-line);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    animation: au-slide 0.25s ease-out;
+  }
+
+  .au-row:last-child { border-bottom: none; }
+  .au-row.you { background: var(--you-soft); }
+
+  .au-row-name { font-weight: 600; }
+  .au-row.you .au-row-name { color: var(--you); }
+
+  @keyframes au-slide {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .au-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .au-status {
+    font-size: 13px;
+    color: rgba(243,239,226,0.6);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .au-restart {
+    background: transparent;
+    border: 1px solid rgba(201,163,65,0.4);
+    color: var(--brass);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .au-restart:hover { background: rgba(201,163,65,0.1); }
+
+  .au-result {
+    text-align: center;
+    padding: 22px 10px 6px 10px;
+    border-top: 1px solid rgba(201,163,65,0.3);
+    margin-top: 4px;
+  }
+
+  .au-result-headline {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 24px;
+    margin: 0 0 10px 0;
+  }
+
+  .au-result-headline.win { color: #7fbf8c; }
+  .au-result-headline.lose { color: var(--brass); }
+
+  .au-result-detail {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: rgba(243,239,226,0.7);
+    line-height: 1.8;
+  }
+
+  .app-footer {
+    margin-top: 22px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: rgba(243,239,226,0.35);
+    text-align: center;
+  }
+
+  /* --- simulation panel --- */
+  .sim-intro {
+    font-size: 13px;
+    color: rgba(243,239,226,0.6);
+    line-height: 1.6;
+    margin: 0 0 18px 0;
+  }
+
+  .sim-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .sim-controls button {
+    background: var(--you);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .sim-controls button:hover:not(:disabled) { background: #c9613a; }
+  .sim-controls button:disabled { background: #5a4a42; cursor: not-allowed; opacity: 0.6; }
+
+  .sim-controls select {
+    background: var(--paper);
+    color: var(--ink);
+    border: none;
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+
+  .sim-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .sim-stat {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,163,65,0.2);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .sim-stat-label {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(243,239,226,0.45);
+    margin-bottom: 5px;
+  }
+
+  .sim-stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brass);
+  }
+
+  .sim-charts {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .sim-chart-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 16px;
+    margin: 0 0 8px 0;
+    color: var(--paper);
+  }
+
+  .sim-chart-wrap {
+    background: var(--paper);
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .sim-empty {
+    text-align: center;
+    padding: 40px 10px;
+    color: rgba(243,239,226,0.4);
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  @media (max-width: 480px) {
+    .sim-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 480px) {
+    .au-title { font-size: 22px; }
+    .au-fee { display: none; }
+    .au-stat-value { font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="app-brand">
+    <p class="eyebrow">A tiny economics experiment</p>
+    <h1>The Bid Room</h1>
+    <p>Bid live against a room full of bots. Every bid feeds a pot — the winner's<br class="brk">final price is their bid minus that pot.</p>
+  </div>
+
+  <div class="au-tabs">
+    <button class="au-tab active" id="tab-play">Play</button>
+    <button class="au-tab" id="tab-simulate">Simulate</button>
+  </div>
+
+  <div id="auction-root"></div>
+  <div id="sim-root" style="display:none;"></div>
+
+  <div class="app-footer" id="app-footer">Refresh to start a new room · your bots reshuffle each time</div>
+
+<script>
+(function() {
+  const ITEM_VALUE = 100;
+  const MAX_NO_BID_STREAK = 3;
+  const MAX_BIDDERS = 200;
+  const BOT_NAMES = ["Marchetti", "Hollis", "Verge", "Okafor", "Delacroix", "Suzuki", "Ronan", "Achebe"];
+
+  const root = document.getElementById('auction-root');
+  const simRoot = document.getElementById('sim-root');
+  const tabPlay = document.getElementById('tab-play');
+  const tabSimulate = document.getElementById('tab-simulate');
+  const appFooter = document.getElementById('app-footer');
+
+  tabPlay.addEventListener('click', () => {
+    tabPlay.classList.add('active');
+    tabSimulate.classList.remove('active');
+    root.style.display = '';
+    simRoot.style.display = 'none';
+    appFooter.textContent = 'Refresh to start a new room · your bots reshuffle each time';
+  });
+
+  tabSimulate.addEventListener('click', () => {
+    tabSimulate.classList.add('active');
+    tabPlay.classList.remove('active');
+    root.style.display = 'none';
+    simRoot.style.display = '';
+    appFooter.textContent = 'Simulations run entirely in your browser, nothing is sent anywhere';
+  });
+
+  // --- entry screen ---
+  root.innerHTML = `
+    <div class="au-entry">
+      <p>An item worth roughly $100 is up for bid. Click "Let the Next Bidder Go"
+      to call on a bot — they'll bid only if their private valuation clears
+      the current price. 1% of every bid — yours and theirs — goes into a pot.
+      Whoever bids last wins, and pays their bid minus the pot.</p>
+      <input id="au-name" type="text" placeholder="Your name" maxlength="20" />
+      <br>
+      <button id="au-enter">Enter the Room</button>
+    </div>
+  `;
+
+  const nameInput = root.querySelector('#au-name');
+  const enterBtn = root.querySelector('#au-enter');
+  nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') enterBtn.click(); });
+  enterBtn.addEventListener('click', () => {
+    const name = (nameInput.value || 'You').trim().slice(0, 20);
+    buildGame(name || 'You');
+  });
+
+  function buildGame(playerName) {
+    root.innerHTML = `
+      <div class="au-header">
+        <div>
+          <p class="au-lot">Lot 07 — Live Auction</p>
+          <h2 class="au-title">The Painting</h2>
+        </div>
+        <div class="au-fee">1% of every bid feeds the pot<br>any bid over the current one is valid</div>
+      </div>
+
+      <div class="au-stage">
+        <div class="au-stat">
+          <div class="au-stat-label">Current Bid</div>
+          <div class="au-stat-value" id="au-current">$0.00</div>
+        </div>
+        <div class="au-stat">
+          <div class="au-stat-label">Pot (rebate to winner)</div>
+          <div class="au-stat-value pot" id="au-pot">$0.00</div>
+        </div>
+      </div>
+
+      <div class="au-bidbar">
+        <input id="au-input" type="number" placeholder="Your bid" />
+        <button id="au-submit">Place Bid</button>
+      </div>
+      <div class="au-hint" id="au-hint">Opening bid: any amount above $0.00</div>
+
+      <div class="au-bidbar">
+        <button id="au-nextbidder" class="au-next">Let the Next Bidder Go</button>
+      </div>
+      <div class="au-hint">Bots only bid when you call on them</div>
+
+      <div class="au-ledger" id="au-ledger">
+        <div class="au-ledger-empty">No bids yet. Be the first, or wait for the room to open.</div>
+      </div>
+
+      <div class="au-footer">
+        <div class="au-status" id="au-status">Auction open · waiting for first bid</div>
+        <button class="au-restart" id="au-restart">Restart</button>
+      </div>
+
+      <div id="au-result"></div>
+    `;
+
+    const els = {
+      current: root.querySelector('#au-current'),
+      pot: root.querySelector('#au-pot'),
+      input: root.querySelector('#au-input'),
+      submit: root.querySelector('#au-submit'),
+      nextBidder: root.querySelector('#au-nextbidder'),
+      hint: root.querySelector('#au-hint'),
+      ledger: root.querySelector('#au-ledger'),
+      status: root.querySelector('#au-status'),
+      restart: root.querySelector('#au-restart'),
+      result: root.querySelector('#au-result'),
+    };
+
+    let state;
+
+    function freshState() {
+      return {
+        currentBid: 0,
+        pot: 0,
+        bidders: 0,
+        noBidStreak: 0,
+        open: true,
+        lastBidder: null,
+      };
+    }
+
+    function gaussian(mean, std) {
+      let u = 1 - Math.random();
+      let v = Math.random();
+      let z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+      return Math.max(mean + z * std, 0);
+    }
+
+    function fmt(n) { return '$' + n.toFixed(2); }
+
+    function renderStats() {
+      els.current.textContent = fmt(state.currentBid);
+      els.pot.textContent = fmt(state.pot);
+      els.hint.textContent = state.currentBid === 0
+        ? 'Opening bid: any amount above $0.00'
+        : `Your bid must exceed ${fmt(state.currentBid)}`;
+    }
+
+    function addRow(name, amount, isYou) {
+      if (els.ledger.querySelector('.au-ledger-empty')) els.ledger.innerHTML = '';
+      const row = document.createElement('div');
+      row.className = 'au-row' + (isYou ? ' you' : '');
+      row.innerHTML = `<span class="au-row-name">${name}</span><span>${fmt(amount)}</span>`;
+      els.ledger.prepend(row);
+    }
+
+    function placeBid(name, amount, isYou) {
+      state.currentBid = amount;
+      state.pot = Math.round((state.pot + amount * 0.01) * 100) / 100;
+      state.bidders += 1;
+      state.noBidStreak = 0;
+      state.lastBidder = { name, isYou };
+      addRow(name, amount, isYou);
+      renderStats();
+      els.status.textContent = `${state.bidders} bid${state.bidders === 1 ? '' : 's'} placed · room is live`;
+    }
+
+    function botTurn() {
+      if (!state.open) return;
+
+      const valuation = gaussian(ITEM_VALUE, ITEM_VALUE * 0.25);
+
+      if (valuation <= state.currentBid) {
+        state.noBidStreak += 1;
+        els.status.textContent = `Bidder passed. (no-bid streak: ${state.noBidStreak}/${MAX_NO_BID_STREAK})`;
+        if (state.noBidStreak >= MAX_NO_BID_STREAK || state.bidders >= MAX_BIDDERS) {
+          endAuction();
+        }
+        return;
+      }
+
+      const increment = (0.02 + Math.random() * 0.08) * ITEM_VALUE;
+      const bidAmount = Math.round(Math.min(state.currentBid + increment, valuation) * 100) / 100;
+      const botName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+
+      placeBid(botName, bidAmount, false);
+
+      if (state.bidders >= MAX_BIDDERS) endAuction();
+    }
+
+    function endAuction() {
+      state.open = false;
+      els.submit.disabled = true;
+      els.input.disabled = true;
+      els.nextBidder.disabled = true;
+
+      if (!state.lastBidder) {
+        els.status.textContent = 'Auction closed · no bids placed';
+        return;
+      }
+
+      const winnerPays = Math.round((state.currentBid - state.pot) * 100) / 100;
+      const youWon = state.lastBidder.isYou;
+
+      els.status.textContent = 'Auction closed';
+      els.result.innerHTML = `
+        <div class="au-result">
+          <h3 class="au-result-headline ${youWon ? 'win' : 'lose'}">
+            ${youWon ? `Sold — to ${playerName}.` : `Sold — to ${state.lastBidder.name}.`}
+          </h3>
+          <div class="au-result-detail">
+            Winning bid: ${fmt(state.currentBid)}<br>
+            Pot rebate: ${fmt(state.pot)}<br>
+            ${youWon ? playerName + ' pays' : `${state.lastBidder.name} pays`}: <strong>${fmt(winnerPays)}</strong><br>
+            Total bids placed: ${state.bidders}
+          </div>
+        </div>
+      `;
+    }
+
+    function tryUserBid() {
+      if (!state.open) return;
+      const val = parseFloat(els.input.value);
+      if (isNaN(val) || val <= state.currentBid) {
+        els.hint.textContent = `Bid must exceed ${fmt(state.currentBid)}`;
+        els.hint.style.color = '#e08a6b';
+        return;
+      }
+      if (state.currentBid === 0 && val <= 0) {
+        els.hint.textContent = 'Opening bid must be above $0.00';
+        els.hint.style.color = '#e08a6b';
+        return;
+      }
+      els.hint.style.color = '';
+      placeBid(playerName, Math.round(val * 100) / 100, true);
+      els.input.value = '';
+
+      if (state.bidders >= MAX_BIDDERS) endAuction();
+    }
+
+    function start() {
+      state = freshState();
+      els.ledger.innerHTML = '<div class="au-ledger-empty">No bids yet. Be the first, or wait for the room to open.</div>';
+      els.result.innerHTML = '';
+      els.submit.disabled = false;
+      els.input.disabled = false;
+      els.nextBidder.disabled = false;
+      els.input.value = '';
+      els.status.textContent = 'Auction open · call the next bidder or place your own bid';
+      renderStats();
+    }
+
+    els.submit.addEventListener('click', tryUserBid);
+    els.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUserBid(); });
+    els.nextBidder.addEventListener('click', botTurn);
+    els.restart.addEventListener('click', start);
+
+    start();
+  }
+
+  // ============ SIMULATION ============
+
+  function gaussianStandalone(mean, std) {
+    let u = 1 - Math.random();
+    let v = Math.random();
+    let z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    return Math.max(mean + z * std, 0);
+  }
+
+  function runSimAuction() {
+    let pot = 0;
+    let currentBid = 0;
+    let bidders = 0;
+    let noBidStreak = 0;
+
+    while (noBidStreak < MAX_NO_BID_STREAK && bidders < MAX_BIDDERS) {
+      const valuation = gaussianStandalone(ITEM_VALUE, ITEM_VALUE * 0.25);
+
+      if (valuation <= currentBid) {
+        noBidStreak += 1;
+        continue;
+      }
+
+      const increment = (0.02 + Math.random() * 0.08) * ITEM_VALUE;
+      currentBid = Math.round(Math.min(currentBid + increment, valuation) * 100) / 100;
+      pot = Math.round((pot + currentBid * 0.01) * 100) / 100;
+      bidders += 1;
+      noBidStreak = 0;
+    }
+
+    return { pot, bidders, winningBid: currentBid, winnerPays: Math.round((currentBid - pot) * 100) / 100 };
+  }
+
+  function buildSimPanel() {
+    simRoot.innerHTML = `
+      <p class="sim-intro">Run the same auction model thousands of times (bots only,
+      no human bidder) to see how the pot and the winning bid actually distribute.</p>
+
+      <div class="sim-controls">
+        <select id="sim-count">
+          <option value="1000">1,000 runs</option>
+          <option value="5000" selected>5,000 runs</option>
+          <option value="10000">10,000 runs</option>
+        </select>
+        <button id="sim-run">Run Simulations</button>
+      </div>
+
+      <div id="sim-body">
+        <div class="sim-empty">No simulations run yet.</div>
+      </div>
+    `;
+
+    const countSelect = simRoot.querySelector('#sim-count');
+    const runBtn = simRoot.querySelector('#sim-run');
+    const simBody = simRoot.querySelector('#sim-body');
+
+    runBtn.addEventListener('click', () => {
+      const n = parseInt(countSelect.value, 10);
+      runBtn.disabled = true;
+      runBtn.textContent = 'Running…';
+
+      // let the UI paint the disabled state before the loop blocks the thread
+      setTimeout(() => {
+        const pots = [];
+        const winningBids = [];
+        const bidderCounts = [];
+
+        for (let i = 0; i < n; i++) {
+          const r = runSimAuction();
+          pots.push(r.pot);
+          winningBids.push(r.winningBid);
+          bidderCounts.push(r.bidders);
+        }
+
+        const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+        simBody.innerHTML = `
+          <div class="sim-stats">
+            <div class="sim-stat">
+              <div class="sim-stat-label">Simulations</div>
+              <div class="sim-stat-value">${n.toLocaleString()}</div>
+            </div>
+            <div class="sim-stat">
+              <div class="sim-stat-label">Mean Pot</div>
+              <div class="sim-stat-value">$${mean(pots).toFixed(2)}</div>
+            </div>
+            <div class="sim-stat">
+              <div class="sim-stat-label">Mean Winning Bid</div>
+              <div class="sim-stat-value">$${mean(winningBids).toFixed(2)}</div>
+            </div>
+            <div class="sim-stat">
+              <div class="sim-stat-label">Mean Bidders</div>
+              <div class="sim-stat-value">${mean(bidderCounts).toFixed(1)}</div>
+            </div>
+          </div>
+
+          <div class="sim-charts">
+            <div>
+              <p class="sim-chart-title">Distribution of Pot Values</p>
+              <div class="sim-chart-wrap"><canvas id="chart-pot" width="600" height="220"></canvas></div>
+            </div>
+            <div>
+              <p class="sim-chart-title">Distribution of Winning Bids</p>
+              <div class="sim-chart-wrap"><canvas id="chart-wbid" width="600" height="220"></canvas></div>
+            </div>
+          </div>
+        `;
+
+        drawHistogram(simRoot.querySelector('#chart-pot'), pots, '#b3542f', 'Pot ($)');
+        drawHistogram(simRoot.querySelector('#chart-wbid'), winningBids, '#4C7250', 'Winning Bid ($)');
+
+        runBtn.disabled = false;
+        runBtn.textContent = 'Run Simulations';
+      }, 30);
+    });
+  }
+
+  function drawHistogram(canvas, data, color, xLabel) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const padL = 46, padB = 26, padT = 10, padR = 10;
+    ctx.clearRect(0, 0, W, H);
+
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const binCount = 30;
+    const binWidth = (max - min) / binCount || 1;
+    const bins = new Array(binCount).fill(0);
+
+    data.forEach((v) => {
+      let idx = Math.floor((v - min) / binWidth);
+      if (idx >= binCount) idx = binCount - 1;
+      if (idx < 0) idx = 0;
+      bins[idx] += 1;
+    });
+
+    const maxCount = Math.max(...bins);
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+    const barW = chartW / binCount;
+
+    // gridlines
+    ctx.strokeStyle = '#ded6bd';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = padT + chartH - (chartH * i) / 4;
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(W - padR, y);
+      ctx.stroke();
+      ctx.fillStyle = '#6b6350';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round((maxCount * i) / 4), padL - 6, y + 3);
+    }
+
+    // bars
+    ctx.fillStyle = color;
+    bins.forEach((count, i) => {
+      const barH = maxCount > 0 ? (count / maxCount) * chartH : 0;
+      const x = padL + i * barW;
+      const y = padT + chartH - barH;
+      ctx.fillRect(x + 1, y, Math.max(barW - 2, 1), barH);
+    });
+
+    // x-axis labels (min / mid / max)
+    ctx.fillStyle = '#241c12';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('$' + min.toFixed(0), padL, H - 8);
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + max.toFixed(0), W - padR, H - 8);
+    ctx.textAlign = 'center';
+    ctx.fillText(xLabel, padL + chartW / 2, H - 8);
+  }
+
+  buildSimPanel();
+})();
+</script>
+</body>
+</html>
